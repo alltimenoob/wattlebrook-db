@@ -54,6 +54,22 @@ except Exception as e:  # noqa: BLE001
     st.info("Start it with `docker compose up -d`, run the pipeline, then reload.")
     st.stop()
 
+# The reports views are created by sql/11_reports.sql when the pipeline runs.
+# If they are missing, the database was built from older code or never loaded.
+with connect().cursor() as _cur:
+    _cur.execute("SELECT to_regclass('reports.checks') IS NOT NULL")
+    _ready = _cur.fetchone()[0]
+if not _ready:
+    st.error("The database has no reports views yet (reports.checks is missing).")
+    st.markdown(
+        "Your database was built from older code or the pipeline has not run. "
+        "From the repo root, with Docker running:\n\n"
+        "```\ngit pull\ndocker compose down -v\ndocker compose up -d\n"
+        "python python/run_pipeline.py\n```\n"
+        "Then reload this page. `down -v` wipes the old database so the new schema is created."
+    )
+    st.stop()
+
 st.title("Wattlebrook University governed data platform")
 st.caption("Synthetic data. Every number below is read live from the reports.* views.")
 
